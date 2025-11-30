@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+        
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+        }
+        
+        .btn {
+            border-radius: 6px;
+        }
+        
+        .table th {
+            border-top: none;
+            font-weight: 600;
+        }
+        
+        .nav-tabs .nav-link {
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+        
+        .badge {
+            font-size: 0.75em;
+            padding: 0.5em 0.75em;
+        }
+        
+        .stats-card {
+            transition: transform 0.2s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="loading-spinner" v-if="isLoading" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading Hospital Management System...</p>
+        </div>
+        
+        <!-- Vue Router View -->
+        <router-view></router-view>
+    </div>
+
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Vue Router 4 -->
+    <script src="https://unpkg.com/vue-router@4.0.13/dist/vue-router.global.js"></script>
+    
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="{{ url_for('static', filename='js/router.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
+    <script>
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            // You could show a user-friendly error message here
+        });
+        
+        // Handle offline/online status
+        window.addEventListener('offline', function() {
+            console.log('Application is offline');
+            // You could show an offline indicator
+        });
+        
+        window.addEventListener('online', function() {
+            console.log('Application is online');
+            // You could hide the offline indicator
+        });
+        
+        // Prevent browser caching issues in development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            window.addEventListener('beforeunload', function() {
+                // Clear any development-related cache if needed
+            });
+        }
+    </script>
+</body>
+</html>
