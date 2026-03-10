@@ -1210,10 +1210,100 @@ app.component('doctor-dash', {
 
             <div class="card">
                 <div class="card-header">
-                    <h5><i class="fas fa-calendar"></i> My Appointments</h5>
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0"><i class="fas fa-calendar"></i> My Appointments</h5>
+                        </div>
+                        <div class="col-auto">
+                            <select v-model="statusFilter" @change="fetchAppointments" class="form-select form-select-sm" style="width: auto; display: inline-block;">
+                                <option value="">All Statuses</option>
+                                <option value="Booked">Booked</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <p>Appointments management for doctors coming soon...</p>
+                    <div v-if="loadingAppointments" class="text-center py-4">
+                        <div class="spinner-border" role="status"></div>
+                        <p class="mt-2">Loading appointments...</p>
+                    </div>
+                    <div v-else-if="appointments.length === 0" class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <p>No appointments found.</p>
+                    </div>
+                    <div v-else class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Date & Time</th>
+                                    <th>Status</th>
+                                    <th>Diagnosis</th>
+                                    <th>Prescription</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="apt in appointments" :key="apt.id">
+                                    <td>{{ apt.patient_name }}</td>
+                                    <td>{{ formatDateTime(apt.date_time) }}</td>
+                                    <td>
+                                        <span :class="getStatusBadge(apt.status)">{{ apt.status }}</span>
+                                    </td>
+                                    <td>{{ apt.diagnosis || '-' }}</td>
+                                    <td>{{ apt.prescription || '-' }}</td>
+                                    <td>
+                                        <button v-if="apt.status === 'Booked'" @click="openTreatmentModal(apt)" class="btn btn-sm btn-outline-success me-1" title="Complete & add treatment">
+                                            <i class="fas fa-notes-medical"></i> Treat
+                                        </button>
+                                        <button v-if="apt.status === 'Booked'" @click="cancelAppointment(apt)" class="btn btn-sm btn-outline-danger" title="Cancel appointment">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <span v-if="apt.status !== 'Booked'" class="text-muted small">No actions</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Treatment Modal -->
+        <div class="modal fade" id="treatmentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fas fa-notes-medical"></i> Complete Appointment</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" v-if="selectedAppointment">
+                        <p><strong>Patient:</strong> {{ selectedAppointment.patient_name }}</p>
+                        <p><strong>Date:</strong> {{ formatDateTime(selectedAppointment.date_time) }}</p>
+                        <form @submit.prevent="completeTreatment">
+                            <div class="mb-3">
+                                <label class="form-label">Diagnosis</label>
+                                <textarea v-model="treatmentForm.diagnosis" class="form-control" rows="2" placeholder="Enter diagnosis"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Prescription</label>
+                                <textarea v-model="treatmentForm.prescription" class="form-control" rows="2" placeholder="Enter prescription"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea v-model="treatmentForm.notes" class="form-control" rows="2" placeholder="Additional notes"></textarea>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-success" :disabled="submittingTreatment">
+                                    <span v-if="submittingTreatment" class="spinner-border spinner-border-sm me-2"></span>
+                                    {{ submittingTreatment ? 'Saving...' : 'Complete Appointment' }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1222,11 +1312,22 @@ app.component('doctor-dash', {
     data() {
         return {
             dashboardStats: {},
-            userName: localStorage.getItem('user_name') || 'Doctor'
+            userName: localStorage.getItem('user_name') || 'Doctor',
+            appointments: [],
+            loadingAppointments: false,
+            statusFilter: '',
+            selectedAppointment: null,
+            submittingTreatment: false,
+            treatmentForm: {
+                diagnosis: '',
+                prescription: '',
+                notes: ''
+            }
         }
     },
     async mounted() {
         await this.fetchDashboardStats();
+        await this.fetchAppointments();
     },
     methods: {
         getAuthHeader() {
@@ -1241,6 +1342,88 @@ app.component('doctor-dash', {
                 if (res.ok) this.dashboardStats = await res.json();
             } catch (e) {
                 console.error('Error fetching dashboard stats:', e);
+            }
+        },
+        async fetchAppointments() {
+            this.loadingAppointments = true;
+            try {
+                let url = '/api/appointments';
+                if (this.statusFilter) url += '?status=' + encodeURIComponent(this.statusFilter);
+                const res = await fetch(url, { headers: this.getAuthHeader() });
+                if (res.ok) {
+                    this.appointments = await res.json();
+                }
+            } catch (e) {
+                console.error('Error fetching appointments:', e);
+            } finally {
+                this.loadingAppointments = false;
+            }
+        },
+        formatDateTime(dateString) {
+            if (!dateString) return 'N/A';
+            return new Date(dateString).toLocaleString();
+        },
+        getStatusBadge(status) {
+            switch (status) {
+                case 'Booked': return 'badge bg-primary';
+                case 'Completed': return 'badge bg-success';
+                case 'Cancelled': return 'badge bg-danger';
+                default: return 'badge bg-secondary';
+            }
+        },
+        openTreatmentModal(appointment) {
+            this.selectedAppointment = appointment;
+            this.treatmentForm = { diagnosis: appointment.diagnosis || '', prescription: appointment.prescription || '', notes: appointment.notes || '' };
+            const modal = new bootstrap.Modal(document.getElementById('treatmentModal'));
+            modal.show();
+        },
+        async completeTreatment() {
+            this.submittingTreatment = true;
+            try {
+                const res = await fetch(`/api/appointments/${this.selectedAppointment.id}`, {
+                    method: 'PUT',
+                    headers: this.getAuthHeader(),
+                    body: JSON.stringify({
+                        status: 'Completed',
+                        diagnosis: this.treatmentForm.diagnosis,
+                        prescription: this.treatmentForm.prescription,
+                        notes: this.treatmentForm.notes
+                    })
+                });
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('treatmentModal')).hide();
+                    await this.fetchAppointments();
+                    await this.fetchDashboardStats();
+                    alert('Appointment completed successfully!');
+                } else {
+                    const data = await res.json();
+                    alert(data.message || 'Error completing appointment');
+                }
+            } catch (e) {
+                console.error('Error completing appointment:', e);
+                alert('Error completing appointment. Please try again.');
+            } finally {
+                this.submittingTreatment = false;
+            }
+        },
+        async cancelAppointment(appointment) {
+            if (!confirm(`Cancel appointment for ${appointment.patient_name}?`)) return;
+            try {
+                const res = await fetch(`/api/appointments/${appointment.id}`, {
+                    method: 'PUT',
+                    headers: this.getAuthHeader(),
+                    body: JSON.stringify({ status: 'Cancelled' })
+                });
+                if (res.ok) {
+                    await this.fetchAppointments();
+                    await this.fetchDashboardStats();
+                } else {
+                    const data = await res.json();
+                    alert(data.message || 'Error cancelling appointment');
+                }
+            } catch (e) {
+                console.error('Error cancelling appointment:', e);
+                alert('Error cancelling appointment. Please try again.');
             }
         },
         logout() {

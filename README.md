@@ -93,7 +93,7 @@ A comprehensive web application for managing hospital operations with role-based
 6. **Start Celery worker** (in a new terminal):
    ```bash
    # Activate virtual environment first
-   celery -A celery_app worker --loglevel=info
+   python -c "import redis; r = redis.Redis(host='127.0.0.1', port=6379); print('Redis connected:', r.ping())"
    ```
 
 7. **Start Celery beat scheduler** (in another terminal, for scheduled tasks):
@@ -273,7 +273,7 @@ For production deployment:
 
 ## License
 
-This project is for educational purposes. Please check with your institution for specific license requirements.
+This project is for educational purposes made for MAD II .
 
 ## Support
 
