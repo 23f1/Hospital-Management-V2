@@ -277,4 +277,4 @@ This project is for educational purposes made for MAD II .
 
 ## Support
 
-For issues and questions, please refer to the project documentation or contact the development team.
+For issues and questions, please refer to the project documentation or contact the developer aka ME haha jus drop a mail or Hii on Linked in .
